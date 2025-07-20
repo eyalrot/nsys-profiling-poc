@@ -8,6 +8,9 @@ import time
 import math
 import sys
 
+# Increase the limit for integer string conversion
+sys.set_int_max_str_digits(100000)
+
 
 def fibonacci_recursive(n):
     """Recursive fibonacci - inefficient on purpose for CPU profiling"""

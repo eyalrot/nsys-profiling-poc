@@ -45,7 +45,8 @@ profiling-poc/
    - (Optional) aiofiles: `pip install aiofiles`
    - (Optional) matplotlib: `pip install matplotlib`
 
-3. **C++ Compiler**
+3. **C++ Build Tools**
+   - CMake 3.10+
    - GCC 7+ or Clang 8+ with C++17 support
    - pthread support
    - (Optional) CUDA Toolkit for NVTX support
@@ -83,13 +84,25 @@ pip install -r requirements.txt
 
 ### 3. Build C++ Examples
 
+The project uses CMake for building C++ examples:
+
 ```bash
-make all
+make all          # Uses CMake internally
 ```
 
-To build with NVTX support (requires CUDA Toolkit):
+For more control over the build:
 ```bash
+# Debug build
+CMAKE_BUILD_TYPE=Debug make all
+
+# Release with debug info
+CMAKE_BUILD_TYPE=RelWithDebInfo make all
+
+# Build with NVTX support (requires CUDA Toolkit)
 make nvtx
+
+# Build with different optimization levels for comparison
+make build-opt-comparison
 ```
 
 ### 4. Run Basic Profiling
@@ -99,13 +112,22 @@ Profile all examples:
 ./scripts/profile_all.sh
 ```
 
+Or use the enhanced Makefile (see [MAKEFILE_GUIDE.md](MAKEFILE_GUIDE.md) for all options):
+```bash
+# Profile everything
+make profile
+
+# Profile with advanced options
+make advanced-workflow
+```
+
 Profile a specific example:
 ```bash
 # Python example
 nsys profile --sample=cpu --trace=osrt -o results/py_basic python python/1_basic_cpu_profiling.py
 
 # C++ example
-nsys profile --sample=cpu --trace=osrt -o results/cpp_basic cpp/bin/1_basic_cpu_profiling
+nsys profile --sample=cpu --trace=osrt -o results/cpp_basic build/bin/1_basic_cpu_profiling
 ```
 
 ### 5. Analyze Results
@@ -286,7 +308,44 @@ nsys analyze --report cpusampling output.nsys-rep
    - Use async I/O
    - Optimize buffer sizes
 
+## Build System
+
+The project uses a hybrid build system:
+- **CMake**: For portable C++ compilation with automatic dependency detection
+- **Makefile**: For workflow automation, profiling, and analysis
+
+For detailed information about all Makefile targets and advanced workflows, see [MAKEFILE_GUIDE.md](MAKEFILE_GUIDE.md).
+
+### CMake Build Options
+
+```bash
+# Configure with custom options
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release -DUSE_NVTX=ON
+make
+
+# Or use the wrapper Makefile
+make cmake-configure-nvtx
+```
+
+### Build Directories
+- `build/`: CMake build directory
+- `build/bin/`: Compiled C++ executables
+- `results/`: Profiling results
+- `results/reports/`: Analysis reports
+
 ## Troubleshooting
+
+### Build Issues
+```bash
+# Clean and rebuild
+make clean
+make all
+
+# Reconfigure CMake
+make clean-cmake
+make cmake-configure
+```
 
 ### Permission Issues
 ```bash

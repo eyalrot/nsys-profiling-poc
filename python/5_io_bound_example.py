@@ -303,15 +303,10 @@ async def async_io_patterns(profiler: IOProfiler):
     
     # Run async function
     start = time.time()
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        result = loop.run_until_complete(async_file_io())
-        elapsed = time.time() - start
-        profiler.results["Async I/O (100 concurrent files)"] = elapsed
-        print(f"   Async I/O (100 concurrent files): {elapsed:.3f}s")
-    finally:
-        loop.close()
+    result = await async_file_io()
+    elapsed = time.time() - start
+    profiler.results["Async I/O (100 concurrent files)"] = elapsed
+    print(f"   Async I/O (100 concurrent files): {elapsed:.3f}s")
     
     # Async with rate limiting
     async def rate_limited_io():
@@ -329,15 +324,10 @@ async def async_io_patterns(profiler: IOProfiler):
     
     # Run rate-limited async
     start = time.time()
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        result = loop.run_until_complete(rate_limited_io())
-        elapsed = time.time() - start
-        profiler.results["Rate-limited async I/O"] = elapsed
-        print(f"   Rate-limited async I/O: {elapsed:.3f}s")
-    finally:
-        loop.close()
+    result = await rate_limited_io()
+    elapsed = time.time() - start
+    profiler.results["Rate-limited async I/O"] = elapsed
+    print(f"   Rate-limited async I/O: {elapsed:.3f}s")
 
 
 def io_optimization_comparison(profiler: IOProfiler):
@@ -367,6 +357,11 @@ def io_optimization_comparison(profiler: IOProfiler):
     # Don't run full unoptimized version as it's too slow
     # profiler.measure("Unoptimized copy (byte-by-byte)", unoptimized_copy)
     print("   Unoptimized copy: skipped (too slow)")
+    
+    # Create source file for copying tests
+    src_path = Path(profiler.temp_dir) / "source.dat"
+    with open(src_path, 'wb') as f:
+        f.write(b'x' * test_size)
     
     # Optimized: buffered copy
     def optimized_copy():

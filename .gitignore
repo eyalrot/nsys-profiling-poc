@@ -11,6 +11,7 @@ ENV/
 
 # C++ build artifacts
 cpp/bin/
+build/
 *.o
 *.out
 *.exe

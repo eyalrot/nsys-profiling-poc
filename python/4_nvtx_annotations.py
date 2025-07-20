@@ -139,13 +139,13 @@ class DataPipeline:
     def transform_batch(self, data: np.ndarray) -> np.ndarray:
         """Apply transformations to batch"""
         # Multiple transformation steps
-        with nvtx.push_range("FFT", color="yellow"):
+        with nvtx.annotate("FFT", color="yellow"):
             fft_data = np.fft.fft(data, axis=1)
         
-        with nvtx.push_range("Filter", color="blue"):
+        with nvtx.annotate("Filter", color="blue"):
             filtered = np.real(fft_data) * 0.5
         
-        with nvtx.push_range("Inverse_FFT", color="cyan"):
+        with nvtx.annotate("Inverse_FFT", color="cyan"):
             result = np.fft.ifft(filtered, axis=1).real
         
         return result
@@ -156,10 +156,11 @@ class DataPipeline:
         results = []
         
         for i in range(num_batches):
-            with nvtx.push_range(f"Batch_{i}", color="orange"):
-                data = self.load_batch(i)
-                transformed = self.transform_batch(data)
-                results.append(transformed)
+            nvtx.push_range(f"Batch_{i}", color="orange")
+            data = self.load_batch(i)
+            transformed = self.transform_batch(data)
+            results.append(transformed)
+            nvtx.pop_range()
         
         return results
 
@@ -308,17 +309,17 @@ def main():
     
     # Example 4: Context manager style
     print("\n4. Context Manager Style Annotations:")
-    with nvtx.push_range("ContextExample", color="purple"):
+    with nvtx.annotate("ContextExample", color="purple"):
         # Nested contexts
-        with nvtx.push_range("Phase1", color="red"):
+        with nvtx.annotate("Phase1", color="red"):
             phase1_data = np.random.randn(1000, 100)
             time.sleep(0.1)
         
-        with nvtx.push_range("Phase2", color="green"):
+        with nvtx.annotate("Phase2", color="green"):
             phase2_result = np.dot(phase1_data, phase1_data.T)
             time.sleep(0.1)
         
-        with nvtx.push_range("Phase3", color="blue"):
+        with nvtx.annotate("Phase3", color="blue"):
             final_result = np.linalg.eigvals(phase2_result[:50, :50])
     
     print("   Context manager example completed")

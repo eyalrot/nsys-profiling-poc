@@ -1,16 +1,17 @@
 # Makefile for NVIDIA Nsight Systems CPU Profiling POC
 # Enhanced with advanced profiling, viewing, and analysis options
+# Now uses CMake for C++ builds
 
-CXX = g++
-CXXFLAGS = -O2 -g -std=c++17 -Wall -Wextra -pthread -march=native
-NVTX_FLAGS = -DUSE_NVTX -lnvToolsExt
-LDFLAGS = -pthread
+# Build configuration
+CMAKE = cmake
+CMAKE_BUILD_TYPE ?= Release
+BUILD_DIR = build
 
 # Python interpreter
 PYTHON = python3
 
 # Output directories
-BIN_DIR = cpp/bin
+BIN_DIR = $(BUILD_DIR)/bin
 RESULTS_DIR = results
 REPORTS_DIR = $(RESULTS_DIR)/reports
 PYTHON_DIR = python
@@ -31,8 +32,8 @@ NSYS_ADVANCED = --sample=cpu --cpuctxsw=true --trace=osrt,nvtx,cuda,cudnn,cublas
 all: cpp-all
 
 # Create directories
-$(BIN_DIR):
-	mkdir -p $(BIN_DIR)
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
 
 $(RESULTS_DIR):
 	mkdir -p $(RESULTS_DIR)
@@ -40,34 +41,31 @@ $(RESULTS_DIR):
 $(REPORTS_DIR):
 	mkdir -p $(REPORTS_DIR)
 
-dirs: $(BIN_DIR) $(RESULTS_DIR) $(REPORTS_DIR)
+dirs: $(BUILD_DIR) $(RESULTS_DIR) $(REPORTS_DIR)
 
-# ==================== C++ Build Targets ====================
+# ==================== C++ Build Targets (using CMake) ====================
 
-cpp-all: $(BIN_DIR) $(CPP_TARGETS)
+# Configure CMake
+cmake-configure: $(BUILD_DIR)
+	cd $(BUILD_DIR) && $(CMAKE) -DCMAKE_BUILD_TYPE=$(CMAKE_BUILD_TYPE) ..
 
-# Build rules for each C++ example
-$(BIN_DIR)/1_basic_cpu_profiling: cpp/1_basic_cpu_profiling.cpp
-	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS)
+# Configure with NVTX support
+cmake-configure-nvtx: $(BUILD_DIR)
+	cd $(BUILD_DIR) && $(CMAKE) -DCMAKE_BUILD_TYPE=$(CMAKE_BUILD_TYPE) -DUSE_NVTX=ON ..
 
-$(BIN_DIR)/2_matrix_operations: cpp/2_matrix_operations.cpp
-	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) -mavx2
-
-$(BIN_DIR)/3_multithreading_example: cpp/3_multithreading_example.cpp
-	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS)
-
-$(BIN_DIR)/4_nvtx_annotations: cpp/4_nvtx_annotations.cpp
-	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS)
-	@echo "Note: To enable real NVTX support, rebuild with 'make nvtx'"
-
-$(BIN_DIR)/5_memory_intensive: cpp/5_memory_intensive.cpp
-	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS)
+# Build all C++ examples
+cpp-all: cmake-configure
+	cd $(BUILD_DIR) && $(CMAKE) --build . --target all
+	@echo "C++ examples built with CMake"
 
 # Build with NVTX support (requires CUDA toolkit)
-nvtx: $(BIN_DIR) $(BIN_DIR)/4_nvtx_annotations_nvtx
+nvtx: cmake-configure-nvtx
+	cd $(BUILD_DIR) && $(CMAKE) --build . --target all
+	@echo "C++ examples built with NVTX support"
 
-$(BIN_DIR)/4_nvtx_annotations_nvtx: cpp/4_nvtx_annotations.cpp
-	$(CXX) $(CXXFLAGS) $(NVTX_FLAGS) $< -o $@ $(LDFLAGS)
+# Build specific optimization comparison
+build-opt-comparison: cmake-configure
+	cd $(BUILD_DIR) && $(CMAKE) --build . --target build-opt-comparison
 
 # ==================== Run Targets ====================
 
@@ -275,7 +273,7 @@ quick-view:
 
 # Clean build artifacts
 clean:
-	rm -rf $(BIN_DIR)
+	rm -rf $(BUILD_DIR)
 	rm -f $(RESULTS_DIR)/*.nsys-rep
 	rm -f $(RESULTS_DIR)/*.qdrep
 	rm -f $(RESULTS_DIR)/*.sqlite
@@ -287,6 +285,10 @@ clean-results:
 	rm -f $(RESULTS_DIR)/*.qdrep
 	rm -f $(RESULTS_DIR)/*.sqlite
 	rm -rf $(REPORTS_DIR)
+
+# Clean CMake cache (for reconfiguration)
+clean-cmake:
+	rm -rf $(BUILD_DIR)/CMakeCache.txt $(BUILD_DIR)/CMakeFiles
 
 # Archive profiling results
 archive:
@@ -310,10 +312,13 @@ help:
 	@echo "NVIDIA Nsight Systems CPU Profiling POC - Enhanced Makefile"
 	@echo "=========================================================="
 	@echo ""
-	@echo "BUILD TARGETS:"
+	@echo "BUILD TARGETS (using CMake):"
 	@echo "  make all              - Build all C++ examples"
 	@echo "  make cpp-all          - Build all C++ examples"
-	@echo "  make nvtx             - Build NVTX example with real NVTX support"
+	@echo "  make nvtx             - Build with NVTX support (requires CUDA)"
+	@echo "  make cmake-configure  - Configure CMake build"
+	@echo "  make cmake-configure-nvtx - Configure with NVTX support"
+	@echo "  make build-opt-comparison - Build with different optimization levels"
 	@echo ""
 	@echo "RUN TARGETS:"
 	@echo "  make run              - Run all examples (C++ and Python)"
@@ -350,6 +355,7 @@ help:
 	@echo "UTILITY TARGETS:"
 	@echo "  make clean            - Clean all build artifacts and results"
 	@echo "  make clean-results    - Clean only profiling results"
+	@echo "  make clean-cmake      - Clean CMake cache for reconfiguration"
 	@echo "  make archive          - Archive profiling results with timestamp"
 	@echo "  make check-nsys       - Check nsys installation"
 	@echo "  make help             - Show this help message"
@@ -369,7 +375,8 @@ advanced-workflow:
 	@./scripts/advanced_profiling.sh
 
 # Phony targets
-.PHONY: all cpp-all dirs clean clean-results run run-cpp run-python \
+.PHONY: all cpp-all dirs clean clean-results clean-cmake run run-cpp run-python \
+        cmake-configure cmake-configure-nvtx build-opt-comparison \
         profile profile-cpp profile-python profile-cpu-detailed \
         profile-memory profile-advanced profile-custom \
         analyze analyze-stats analyze-sqlite analyze-cpu-sampling \

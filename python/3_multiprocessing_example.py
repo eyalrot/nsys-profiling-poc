@@ -21,6 +21,11 @@ def cpu_bound_task(n: int) -> int:
     return total
 
 
+def cpu_bound_task_scaled(x: int) -> int:
+    """Wrapper for cpu_bound_task with scaling"""
+    return cpu_bound_task(x * 1000)
+
+
 def worker_with_shared_memory(arr: mp.Array, start: int, end: int, lock: Lock) -> None:
     """Worker that modifies shared memory array"""
     local_sum = 0
@@ -60,6 +65,28 @@ def consumer(queue: Queue, result_queue: Queue) -> None:
     result_queue.put((os.getpid(), count, total))
 
 
+def process_batch(batch_id: int, size: int) -> Tuple[int, float]:
+    """Process a batch of data for concurrent futures example"""
+    start = time.time()
+    result = 0
+    for i in range(size):
+        result += cpu_bound_task(100)
+    return batch_id, time.time() - start
+
+
+def multiply_row_range(a_rows, b, start_row, end_row):
+    """Multiply a range of rows for parallel matrix multiplication"""
+    return np.dot(a_rows[start_row:end_row], b)
+
+
+def worker_task(x):
+    """Worker task for pool comparison - simulate CPU-intensive work"""
+    result = 0
+    for i in range(x, x + 10000):
+        result += i * i
+    return result
+
+
 def parallel_map_example():
     """Example using multiprocessing.Pool.map"""
     print("\n1. Parallel Map Example:")
@@ -76,7 +103,7 @@ def parallel_map_example():
     # Parallel processing with Pool
     start = time.time()
     with Pool(processes=mp.cpu_count()) as pool:
-        parallel_results = pool.map(lambda x: cpu_bound_task(x * 1000), data)
+        parallel_results = pool.map(cpu_bound_task_scaled, data)
     par_time = time.time() - start
     print(f"   Parallel processing ({mp.cpu_count()} cores): {par_time:.3f}s")
     print(f"   Speedup: {seq_time/par_time:.2f}x")
@@ -175,14 +202,6 @@ def concurrent_futures_example():
     """Example using concurrent.futures for high-level parallelism"""
     print("\n4. Concurrent Futures Example:")
     
-    def process_batch(batch_id: int, size: int) -> Tuple[int, float]:
-        """Process a batch of data"""
-        start = time.time()
-        result = 0
-        for i in range(size):
-            result += cpu_bound_task(100)
-        return batch_id, time.time() - start
-    
     num_batches = 50
     batch_size = 1000
     
@@ -221,9 +240,6 @@ def numpy_parallel_example():
     print(f"   NumPy matrix multiplication ({size}x{size}): {numpy_time:.3f}s")
     
     # Manual parallel multiplication using multiprocessing
-    def multiply_row_range(a_rows, b, start_row, end_row):
-        return np.dot(a_rows[start_row:end_row], b)
-    
     start = time.time()
     num_processes = mp.cpu_count()
     chunk_size = size // num_processes
@@ -247,13 +263,6 @@ def numpy_parallel_example():
 def pool_comparison():
     """Compare different pool implementations"""
     print("\n6. Pool Implementation Comparison:")
-    
-    def worker_task(x):
-        # Simulate CPU-intensive work
-        result = 0
-        for i in range(x, x + 10000):
-            result += i * i
-        return result
     
     work_items = list(range(1000))
     
