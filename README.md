@@ -352,18 +352,30 @@ make cmake-configure
 CPU sampling requires appropriate permissions. If you see warnings about CPU sampling not being supported:
 
 ```bash
+# Quick setup (recommended)
+./scripts/setup_cpu_profiling.sh
+
+# Or manually:
+
 # Check your system's paranoid level
 cat /proc/sys/kernel/perf_event_paranoid
 
-# Option 1: Use sudo (recommended for testing)
-sudo $(which nsys) profile --sample=cpu ./program
-
-# Option 2: Temporarily lower paranoid level (requires root)
+# Temporary fix (until reboot)
 echo 1 | sudo tee /proc/sys/kernel/perf_event_paranoid
 
-# Option 3: Use the helper script
-./scripts/nsys_with_sudo.sh profile --sample=cpu ./program
+# Permanent fix (survives reboot)
+echo 'kernel.perf_event_paranoid = 1' | sudo tee /etc/sysctl.d/99-perf.conf
+sudo sysctl -p /etc/sysctl.d/99-perf.conf
+
+# Alternative: Use sudo for one-off profiling
+sudo $(which nsys) profile --sample=cpu ./program
 ```
+
+**Paranoid Levels:**
+- `-1`: Allow all events (maximum functionality)
+- `1`: Allow kernel and user measurements (recommended for development)
+- `2`: Allow only user measurements
+- `3-4`: Restricted access (CPU sampling disabled)
 
 Note: Without CPU sampling, nsys will still collect OS runtime traces, NVTX markers, and other metrics.
 

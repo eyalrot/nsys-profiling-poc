@@ -131,11 +131,13 @@ Each numbered example (1-5) in both Python and C++ demonstrates specific profili
    
 2. **CPU Sampling Permission Issues**:
    - CPU sampling requires root or lowered kernel paranoid level
-   - If you see "CPU IP/backtrace sampling not supported" warnings, use sudo:
+   - Quick fix: Run `./scripts/setup_cpu_profiling.sh`
+   - Manual temporary fix: `echo 1 | sudo tee /proc/sys/kernel/perf_event_paranoid`
+   - Permanent fix: 
      ```bash
-     sudo $(which nsys) profile --sample=cpu ./program
+     echo 'kernel.perf_event_paranoid = 1' | sudo tee /etc/sysctl.d/99-perf.conf
+     sudo sysctl -p /etc/sysctl.d/99-perf.conf
      ```
-   - Or use the helper script: `./scripts/nsys_with_sudo.sh profile --sample=cpu ./program`
    - Without CPU sampling, nsys still collects useful OS runtime and NVTX data
 
 3. **Performance Analysis Flow**:
