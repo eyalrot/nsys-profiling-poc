@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# C++ build artifacts
+cpp/bin/
+*.o
+*.out
+*.exe
+
+# Profiling results
+results/
+*.nsys-rep
+*.qdrep
+*.sqlite
+*.txt
+*.png
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Documentation build
+docs/_build/
