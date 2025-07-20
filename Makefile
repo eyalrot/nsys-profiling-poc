@@ -9,6 +9,7 @@ BUILD_DIR = build
 
 # Python interpreter
 PYTHON = python3
+VENV_PYTHON = venv/bin/python
 
 # Output directories
 BIN_DIR = $(BUILD_DIR)/bin
@@ -29,7 +30,7 @@ NSYS_PYTHON = --trace=osrt,nvtx,python --sample=cpu
 NSYS_ADVANCED = --sample=cpu --cpuctxsw=true --trace=osrt,nvtx,cuda,cudnn,cublas --gpu-metrics-device=all
 
 # Default target
-all: cpp-all
+all: check-venv cpp-all
 
 # Create directories
 $(BUILD_DIR):
@@ -80,12 +81,12 @@ run-cpp: cpp-all
 		$$target || true; \
 	done
 
-run-python:
+run-python: check-venv
 	@echo "\nRunning all Python examples..."
 	@echo "=============================="
 	@for script in $(PYTHON_SOURCES); do \
 		echo "\nRunning $$script:"; \
-		$(PYTHON) $$script || true; \
+		$(VENV_PYTHON) $$script || true; \
 	done
 
 # ==================== Basic Profiling ====================
@@ -101,13 +102,13 @@ profile-cpp: cpp-all dirs
 		nsys profile $(NSYS_BASIC) -o $(RESULTS_DIR)/cpp_$$name $$target || true; \
 	done
 
-profile-python: dirs
+profile-python: check-venv dirs
 	@echo "\nProfiling Python examples with nsys..."
 	@echo "======================================"
 	@for script in $(PYTHON_SOURCES); do \
 		name=$$(basename $$script .py); \
 		echo "\nProfiling $$name..."; \
-		nsys profile $(NSYS_PYTHON) -o $(RESULTS_DIR)/py_$$name $(PYTHON) $$script || true; \
+		nsys profile $(NSYS_PYTHON) -o $(RESULTS_DIR)/py_$$name $(VENV_PYTHON) $$script || true; \
 	done
 
 # ==================== Advanced Profiling ====================
@@ -217,16 +218,16 @@ analyze-nvtx: dirs
 	done
 
 # Compare Python vs C++ performance
-analyze-compare: dirs
+analyze-compare: check-venv dirs
 	@echo "\nComparing Python vs C++ performance..."
 	@echo "======================================"
-	$(PYTHON) scripts/compare_results.py
+	$(VENV_PYTHON) scripts/compare_results.py
 
 # Generate visual HTML report with charts
-analyze-visual: dirs
+analyze-visual: check-venv dirs
 	@echo "\nGenerating visual HTML report..."
 	@echo "================================"
-	$(PYTHON) scripts/generate_visual_report.py
+	$(VENV_PYTHON) scripts/generate_visual_report.py
 	@echo "Report generated in $(REPORTS_DIR)/profiling_report.html"
 
 # ==================== Viewing Targets ====================
@@ -306,6 +307,19 @@ check-nsys:
 	@echo ""
 	@which nsys-ui > /dev/null 2>&1 && echo "nsys-ui found" || echo "nsys-ui not found in PATH!"
 
+# Check virtual environment
+check-venv:
+	@if [ ! -d "venv" ]; then \
+		echo "Virtual environment not found. Creating it..."; \
+		python3 -m venv venv; \
+		venv/bin/pip install -r requirements.txt; \
+	elif [ ! -f "venv/bin/python" ]; then \
+		echo "Virtual environment appears corrupted. Recreating..."; \
+		rm -rf venv; \
+		python3 -m venv venv; \
+		venv/bin/pip install -r requirements.txt; \
+	fi
+
 # ==================== Help Target ====================
 
 help:
@@ -358,6 +372,7 @@ help:
 	@echo "  make clean-cmake      - Clean CMake cache for reconfiguration"
 	@echo "  make archive          - Archive profiling results with timestamp"
 	@echo "  make check-nsys       - Check nsys installation"
+	@echo "  make check-venv       - Check/create Python virtual environment"
 	@echo "  make help             - Show this help message"
 	@echo ""
 	@echo "ADVANCED WORKFLOWS:"
@@ -382,4 +397,4 @@ advanced-workflow:
         analyze analyze-stats analyze-sqlite analyze-cpu-sampling \
         analyze-osrt analyze-nvtx analyze-compare analyze-visual \
         list-results view view-all quick-view \
-        archive check-nsys help nvtx advanced-workflow
+        archive check-nsys check-venv help nvtx advanced-workflow

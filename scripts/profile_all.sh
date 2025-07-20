@@ -10,6 +10,13 @@ NC='\033[0m' # No Color
 # Create results directory
 mkdir -p results
 
+# Use virtual environment Python if available
+if [ -f "venv/bin/python" ]; then
+    PYTHON_CMD="venv/bin/python"
+else
+    PYTHON_CMD="python3"
+fi
+
 echo -e "${GREEN}NVIDIA Nsight Systems CPU Profiling - Full Suite${NC}"
 echo "=================================================="
 echo ""
@@ -50,27 +57,27 @@ echo -e "\n${GREEN}=== Python Examples ===${NC}"
 
 # Basic CPU profiling
 profile_command "py_1_basic_cpu" \
-    "python python/1_basic_cpu_profiling.py" \
+    "$PYTHON_CMD python/1_basic_cpu_profiling.py" \
     "--sample=cpu --trace=osrt"
 
 # Matrix operations with CPU sampling
 profile_command "py_2_matrix_ops" \
-    "python python/2_matrix_operations.py" \
+    "$PYTHON_CMD python/2_matrix_operations.py" \
     "--sample=cpu --trace=osrt,nvtx"
 
 # Multiprocessing with context switches
 profile_command "py_3_multiprocessing" \
-    "python python/3_multiprocessing_example.py" \
+    "$PYTHON_CMD python/3_multiprocessing_example.py" \
     "--sample=cpu --cpuctxsw=true --trace=osrt"
 
 # NVTX annotations (if available)
 profile_command "py_4_nvtx" \
-    "python python/4_nvtx_annotations.py" \
+    "$PYTHON_CMD python/4_nvtx_annotations.py" \
     "--trace=nvtx,osrt --sample=cpu"
 
 # I/O bound operations
 profile_command "py_5_io_bound" \
-    "python python/5_io_bound_example.py" \
+    "$PYTHON_CMD python/5_io_bound_example.py" \
     "--trace=osrt --sample=cpu"
 
 # C++ Examples (build first if needed)

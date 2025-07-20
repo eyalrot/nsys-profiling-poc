@@ -17,6 +17,13 @@ REPORTS_DIR="$RESULTS_DIR/reports"
 # Create directories
 mkdir -p "$RESULTS_DIR" "$REPORTS_DIR"
 
+# Use virtual environment Python if available
+if [ -f "venv/bin/python" ]; then
+    PYTHON_CMD="venv/bin/python"
+else
+    PYTHON_CMD="python3"
+fi
+
 # Function to display menu
 show_menu() {
     echo -e "\n${GREEN}NVIDIA Nsight Systems - Advanced Profiling Workflows${NC}"
@@ -60,7 +67,7 @@ select_target() {
             read num
             TARGET=$(ls -1 python/*.py | sed -n "${num}p")
             TARGET_NAME=$(basename "$TARGET" .py)
-            TARGET="python $TARGET"
+            TARGET="$PYTHON_CMD $TARGET"
             ;;
         *)
             echo -e "${RED}Invalid choice${NC}"
@@ -195,7 +202,7 @@ comparative_analysis() {
     echo -e "\n${GREEN}Profiling Python implementation...${NC}"
     nsys profile --sample=cpu --trace=osrt,nvtx,python \
         -o "${RESULTS_DIR}/compare_py_${ALGO_NAME}_${TIMESTAMP}" \
-        python "$PY_TARGET"
+        $PYTHON_CMD "$PY_TARGET"
     
     echo -e "\n${GREEN}Profiling C++ implementation...${NC}"
     nsys profile --sample=cpu --cpuctxsw=true --trace=osrt,nvtx \
@@ -212,7 +219,7 @@ comparative_analysis() {
         > "${REPORTS_DIR}/compare_cpp_${ALGO_NAME}_${TIMESTAMP}_stats.txt"
     
     # Run comparison script
-    python scripts/compare_results.py
+    $PYTHON_CMD scripts/compare_results.py
     
     echo -e "\n${GREEN}Comparison complete!${NC}"
 }
@@ -273,7 +280,7 @@ thread_contention_analysis() {
             TARGET_NAME="cpp_multithreading"
             ;;
         2)
-            TARGET="python python/3_multiprocessing_example.py"
+            TARGET="$PYTHON_CMD python/3_multiprocessing_example.py"
             TARGET_NAME="py_multiprocessing"
             ;;
         3)
@@ -365,7 +372,7 @@ io_performance_analysis() {
 
     case $choice in
         1)
-            TARGET="python python/5_io_bound_example.py"
+            TARGET="$PYTHON_CMD python/5_io_bound_example.py"
             TARGET_NAME="py_io_bound"
             ;;
         2)
