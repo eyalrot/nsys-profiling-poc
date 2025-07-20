@@ -26,7 +26,7 @@ PYTHON_SOURCES = $(wildcard $(PYTHON_DIR)/*.py)
 NSYS_BASIC = --sample=cpu --trace=osrt,nvtx
 NSYS_DETAILED = --sample=cpu --cpuctxsw=true --trace=osrt,nvtx,cuda
 NSYS_MEMORY = --sample=cpu --trace=osrt --backtrace=fp
-NSYS_PYTHON = --trace=osrt,nvtx,python --sample=cpu
+NSYS_PYTHON = --trace=osrt,nvtx --sample=cpu
 NSYS_ADVANCED = --sample=cpu --cpuctxsw=true --trace=osrt,nvtx,cuda,cudnn,cublas --gpu-metrics-device=all
 
 # Default target
@@ -117,18 +117,18 @@ profile-python: check-venv dirs
 profile-cpu-detailed: cpp-all dirs
 	@echo "Detailed CPU profiling..."
 	@echo "========================"
-	nsys profile $(NSYS_DETAILED) --sampling-period=100000 \
+	nsys profile $(NSYS_DETAILED) --sampling-period=200000 \
 		-o $(RESULTS_DIR)/cpu_detailed_basic $(BIN_DIR)/1_basic_cpu_profiling
-	nsys profile $(NSYS_DETAILED) --sampling-period=50000 \
+	nsys profile $(NSYS_DETAILED) --sampling-period=150000 \
 		-o $(RESULTS_DIR)/cpu_detailed_threading $(BIN_DIR)/3_multithreading_example
 
 # Profile memory access patterns
 profile-memory: cpp-all dirs
 	@echo "Memory profiling..."
 	@echo "=================="
-	nsys profile $(NSYS_MEMORY) --sampling-period=100000 \
+	nsys profile $(NSYS_MEMORY) --sampling-period=200000 \
 		-o $(RESULTS_DIR)/memory_patterns $(BIN_DIR)/5_memory_intensive
-	nsys profile $(NSYS_MEMORY) --sampling-period=100000 \
+	nsys profile $(NSYS_MEMORY) --sampling-period=200000 \
 		-o $(RESULTS_DIR)/memory_matrix $(BIN_DIR)/2_matrix_operations
 
 # Profile with advanced metrics

@@ -126,10 +126,19 @@ Each numbered example (1-5) in both Python and C++ demonstrates specific profili
 
 1. **nsys Options**:
    - Basic: `--sample=cpu --trace=osrt`
-   - Python: `--trace=osrt,nvtx,python --sample=cpu`
+   - Python: `--trace=osrt,nvtx --sample=cpu` (note: 'python' trace removed in newer nsys versions)
    - Detailed: `--sample=cpu --cpuctxsw=true --trace=osrt,nvtx,cuda`
+   
+2. **CPU Sampling Permission Issues**:
+   - CPU sampling requires root or lowered kernel paranoid level
+   - If you see "CPU IP/backtrace sampling not supported" warnings, use sudo:
+     ```bash
+     sudo $(which nsys) profile --sample=cpu ./program
+     ```
+   - Or use the helper script: `./scripts/nsys_with_sudo.sh profile --sample=cpu ./program`
+   - Without CPU sampling, nsys still collects useful OS runtime and NVTX data
 
-2. **Performance Analysis Flow**:
+3. **Performance Analysis Flow**:
    - Start with `make profile` for baseline
    - Use `make analyze-visual` for overview
    - Drill down with `make profile-cpu-detailed` or `make profile-memory`
