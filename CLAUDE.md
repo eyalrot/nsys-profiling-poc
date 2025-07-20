@@ -18,6 +18,11 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+**IMPORTANT**: Always activate the virtual environment before running any Python scripts:
+```bash
+source venv/bin/activate
+```
+
 ### Build Commands
 ```bash
 # Build all C++ examples (uses CMake internally)
@@ -69,7 +74,8 @@ make quick-view PROFILE=py_matrix_operations
 # Run all examples without profiling
 make run
 
-# Test environment setup
+# Test environment setup (activate venv first!)
+source venv/bin/activate
 python test_environment.py
 
 # Check nsys installation
@@ -78,7 +84,8 @@ make check-nsys
 
 ### Development Commands
 ```bash
-# Lint Python code (if dev dependencies installed)
+# Lint Python code (activate venv first if dev dependencies installed)
+source venv/bin/activate
 black python/
 flake8 python/
 
@@ -103,15 +110,17 @@ Each numbered example (1-5) in both Python and C++ demonstrates specific profili
 
 ### Key Technical Considerations
 
-1. **Python Multiprocessing**: Functions used with multiprocessing.Pool must be defined at module level (not lambdas or nested functions) to be picklable.
+1. **Virtual Environment**: Always activate the virtual environment (`source venv/bin/activate`) before running any Python scripts or commands. This ensures all dependencies are available.
 
-2. **NVTX API**: Use `nvtx.annotate()` as a context manager, not `nvtx.push_range()` which doesn't return a context manager.
+2. **Python Multiprocessing**: Functions used with multiprocessing.Pool must be defined at module level (not lambdas or nested functions) to be picklable.
 
-3. **Integer String Limits**: Python 3.10+ requires `sys.set_int_max_str_digits()` for very large integers (e.g., Fibonacci calculations).
+3. **NVTX API**: Use `nvtx.annotate()` as a context manager, not `nvtx.push_range()` which doesn't return a context manager.
 
-4. **Build Output**: CMake outputs binaries to `build/bin/`, not `build/cpp/bin/`.
+4. **Integer String Limits**: Python 3.10+ requires `sys.set_int_max_str_digits()` for very large integers (e.g., Fibonacci calculations).
 
-5. **Async I/O**: Avoid creating nested event loops in async functions - use `await` directly instead of `loop.run_until_complete()`.
+5. **Build Output**: CMake outputs binaries to `build/bin/`, not `build/cpp/bin/`.
+
+6. **Async I/O**: Avoid creating nested event loops in async functions - use `await` directly instead of `loop.run_until_complete()`.
 
 ### Profiling Best Practices
 
