@@ -20,8 +20,11 @@ results/
 *.nsys-rep
 *.qdrep
 *.sqlite
-*.txt
 *.png
+
+# Reports (but not requirements.txt)
+results/*.txt
+reports/*.txt
 
 # IDE
 .vscode/
