@@ -24,10 +24,10 @@ PYTHON_SOURCES = $(wildcard $(PYTHON_DIR)/*.py)
 
 # NSYS profiling options
 NSYS_BASIC = --sample=cpu --trace=osrt,nvtx
-NSYS_DETAILED = --sample=cpu --cpuctxsw=true --trace=osrt,nvtx,cuda
+NSYS_DETAILED = --sample=cpu --cpuctxsw=process-tree --trace=osrt,nvtx,cuda
 NSYS_MEMORY = --sample=cpu --trace=osrt --backtrace=fp
 NSYS_PYTHON = --trace=osrt,nvtx --sample=cpu
-NSYS_ADVANCED = --sample=cpu --cpuctxsw=true --trace=osrt,nvtx,cuda,cudnn,cublas --gpu-metrics-device=all
+NSYS_ADVANCED = --sample=cpu --cpuctxsw=process-tree --trace=osrt,nvtx
 
 # Default target
 all: check-venv cpp-all
@@ -227,7 +227,7 @@ analyze-compare: check-venv dirs
 analyze-visual: check-venv dirs
 	@echo "\nGenerating visual HTML report..."
 	@echo "================================"
-	$(VENV_PYTHON) scripts/generate_visual_report.py
+	$(VENV_PYTHON) scripts/generate_simple_html_report.py
 	@echo "Report generated in $(REPORTS_DIR)/profiling_report.html"
 
 # ==================== Viewing Targets ====================
@@ -375,6 +375,19 @@ help:
 	@echo "  make check-venv       - Check/create Python virtual environment"
 	@echo "  make help             - Show this help message"
 	@echo ""
+	@echo "SOFTWARE-BASED PROFILING TARGETS:"
+	@echo "  make check-cpu-counters    - Check if hardware counters are available"
+	@echo "  make build-software-demo   - Build software profiling demonstration"
+	@echo "  make profile-software-demo - Run various software-based profiling techniques"
+	@echo "  make analyze-software-profiles - Analyze software profiling results"
+	@echo ""
+	@echo "STACK TRACE TARGETS:"
+	@echo "  make build-stack-trace    - Build stack trace examples with different flags"
+	@echo "  make profile-stack-traces - Profile examples with different backtrace methods"
+	@echo "  make test-stack-traces    - Run comprehensive stack trace test script"
+	@echo "  make analyze-stack-traces - Analyze stack trace profiling results"
+	@echo "  make view-stack-trace-docs - View stack trace documentation"
+	@echo ""
 	@echo "ADVANCED WORKFLOWS:"
 	@echo "  make advanced-workflow - Launch interactive advanced profiling menu"
 	@echo ""
@@ -382,12 +395,138 @@ help:
 	@echo "  make profile-custom TARGET=cpp/bin/1_basic_cpu_profiling OPTS='--duration=10'"
 	@echo "  make view PROFILE=cpp_1_basic_cpu_profiling"
 	@echo "  make quick-view PROFILE=py_matrix_operations"
+	@echo "  make test-stack-traces    - Test your stack trace setup"
 
 # Advanced profiling workflow
 advanced-workflow:
 	@echo "Launching advanced profiling workflow..."
 	@echo "======================================="
 	@./scripts/advanced_profiling.sh
+
+# ==================== Software-Based Profiling Targets ====================
+
+# Check CPU counter availability
+check-cpu-counters:
+	@echo "Checking CPU performance counter availability..."
+	@echo "==========================================="
+	@./scripts/check_cpu_counters.sh || true
+
+# Build software profiling examples
+build-software-demo: cmake-configure
+	@echo "Building software profiling demo..."
+	@echo "==================================="
+	@if [ -f "examples/software_profiling_demo.cpp" ]; then \
+		g++ -O2 -g -pthread -o $(BIN_DIR)/software_profiling_demo examples/software_profiling_demo.cpp; \
+		echo "Built: $(BIN_DIR)/software_profiling_demo"; \
+	else \
+		echo "Software profiling demo source not found"; \
+	fi
+
+# Profile with software-based techniques
+profile-software-demo: build-software-demo dirs check-venv
+	@echo "Profiling with software-based techniques..."
+	@echo "=========================================="
+	@echo "\n1. CPU Sampling Profile..."
+	nsys profile --sample=cpu --backtrace=fp \
+		-o $(RESULTS_DIR)/software_cpu_sampling $(BIN_DIR)/software_profiling_demo || true
+	@echo "\n2. Context Switch Profile..."
+	nsys profile --cpuctxsw=process-tree \
+		-o $(RESULTS_DIR)/software_context_switch $(BIN_DIR)/software_profiling_demo || true
+	@echo "\n3. OS Runtime Profile..."
+	nsys profile --trace=osrt \
+		-o $(RESULTS_DIR)/software_os_runtime $(BIN_DIR)/software_profiling_demo || true
+	@echo "\n4. Combined Profile..."
+	nsys profile --sample=cpu --cpuctxsw=process-tree --trace=osrt --backtrace=fp \
+		-o $(RESULTS_DIR)/software_combined $(BIN_DIR)/software_profiling_demo || true
+	@echo "\n5. Python Software Demo..."
+	@if [ -f "examples/software_profiling_demo.py" ]; then \
+		nsys profile --sample=cpu --trace=osrt,nvtx --backtrace=fp \
+			-o $(RESULTS_DIR)/software_python $(VENV_PYTHON) examples/software_profiling_demo.py || true; \
+	else \
+		echo "Python software profiling demo not found"; \
+	fi
+
+# Analyze software-based profiling results
+analyze-software-profiles: dirs
+	@echo "Analyzing software-based profiling results..."
+	@echo "==========================================="
+	@for profile in software_cpu_sampling software_context_switch software_os_runtime software_combined software_python; do \
+		if [ -f "$(RESULTS_DIR)/$$profile.nsys-rep" ]; then \
+			echo "\nAnalyzing $$profile..."; \
+			nsys stats $(RESULTS_DIR)/$$profile.nsys-rep > $(REPORTS_DIR)/$${profile}_analysis.txt 2>/dev/null || true; \
+			echo "Analysis saved to $(REPORTS_DIR)/$${profile}_analysis.txt"; \
+		fi; \
+	done
+
+# ==================== Stack Trace Targets ====================
+
+# Build stack trace examples
+build-stack-trace: cmake-configure
+	@echo "Building stack trace examples..."
+	@echo "================================"
+	cd $(BUILD_DIR) && $(CMAKE) --build . --target stack_trace_example_fp
+	cd $(BUILD_DIR) && $(CMAKE) --build . --target stack_trace_example_dwarf
+	cd $(BUILD_DIR) && $(CMAKE) --build . --target stack_trace_example_no_fp
+	@echo "Stack trace examples built:"
+	@echo "  - $(BIN_DIR)/stack_trace_example_fp (with frame pointers)"
+	@echo "  - $(BIN_DIR)/stack_trace_example_dwarf (with DWARF debug info)"
+	@echo "  - $(BIN_DIR)/stack_trace_example_no_fp (without frame pointers)"
+
+# Profile stack trace examples with different backtrace methods
+profile-stack-traces: build-stack-trace dirs
+	@echo "Profiling stack trace examples..."
+	@echo "================================="
+	@echo "\nProfiling with frame pointer backtrace..."
+	nsys profile --sample=cpu --trace=osrt --backtrace=fp \
+		-o $(RESULTS_DIR)/stack_trace_fp $(BIN_DIR)/stack_trace_example_fp --quick || true
+	@echo "\nProfiling with DWARF backtrace..."
+	nsys profile --sample=cpu --trace=osrt --backtrace=dwarf \
+		-o $(RESULTS_DIR)/stack_trace_dwarf $(BIN_DIR)/stack_trace_example_dwarf --quick || true
+	@echo "\nProfiling with LBR backtrace (may fail on some platforms)..."
+	nsys profile --sample=cpu --trace=osrt --backtrace=lbr \
+		-o $(RESULTS_DIR)/stack_trace_lbr $(BIN_DIR)/stack_trace_example_fp --quick || true
+	@echo "\nProfiling Python stack trace example..."
+	@if [ -f "examples/stack_trace_example.py" ]; then \
+		nsys profile --sample=cpu --trace=osrt,nvtx --backtrace=fp \
+			-o $(RESULTS_DIR)/stack_trace_python $(VENV_PYTHON) examples/stack_trace_example.py --quick || true; \
+	else \
+		echo "Python stack trace example not found"; \
+	fi
+
+# Test stack trace collection
+test-stack-traces:
+	@echo "Testing stack trace collection..."
+	@echo "================================="
+	@if [ -f "scripts/test_stack_traces.sh" ]; then \
+		./scripts/test_stack_traces.sh; \
+	else \
+		echo "Stack trace test script not found"; \
+	fi
+
+# Analyze stack trace results
+analyze-stack-traces: dirs
+	@echo "Analyzing stack trace results..."
+	@echo "================================"
+	@for profile in stack_trace_fp stack_trace_dwarf stack_trace_lbr stack_trace_python; do \
+		if [ -f "$(RESULTS_DIR)/$$profile.nsys-rep" ]; then \
+			echo "\nAnalyzing $$profile..."; \
+			nsys stats --report cpusampling $(RESULTS_DIR)/$$profile.nsys-rep > $(REPORTS_DIR)/$${profile}_analysis.txt 2>/dev/null || \
+			nsys stats $(RESULTS_DIR)/$$profile.nsys-rep > $(REPORTS_DIR)/$${profile}_analysis.txt 2>/dev/null || true; \
+			echo "Analysis saved to $(REPORTS_DIR)/$${profile}_analysis.txt"; \
+		fi; \
+	done
+
+# View stack trace documentation
+view-stack-trace-docs:
+	@echo "Stack Trace Documentation:"
+	@echo "========================="
+	@echo "1. Stack Traces Guide: docs/STACK_TRACES_GUIDE.md"
+	@echo "2. Examples README: examples/README_stack_traces.md"
+	@echo "3. Test Script: scripts/test_stack_traces.sh"
+	@echo ""
+	@echo "To view in your editor:"
+	@echo "  - docs/STACK_TRACES_GUIDE.md"
+	@echo "  - examples/README_stack_traces.md"
 
 # Phony targets
 .PHONY: all cpp-all dirs clean clean-results clean-cmake run run-cpp run-python \
@@ -397,4 +536,8 @@ advanced-workflow:
         analyze analyze-stats analyze-sqlite analyze-cpu-sampling \
         analyze-osrt analyze-nvtx analyze-compare analyze-visual \
         list-results view view-all quick-view \
-        archive check-nsys check-venv help nvtx advanced-workflow
+        archive check-nsys check-venv help nvtx advanced-workflow \
+        build-stack-trace profile-stack-traces test-stack-traces \
+        analyze-stack-traces view-stack-trace-docs \
+        check-cpu-counters build-software-demo profile-software-demo \
+        analyze-software-profiles

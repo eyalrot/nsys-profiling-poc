@@ -66,6 +66,9 @@ set(EXAMPLES
     5_memory_intensive
 )
 
+# Stack trace example (built separately with different flags)
+set(STACK_TRACE_EXAMPLE stack_trace_example)
+
 # Build each example
 foreach(example ${EXAMPLES})
     add_executable(${example} ${example}.cpp)
@@ -119,8 +122,33 @@ message(STATUS "  NVTX Support: ${NVTX_FOUND}")
 message(STATUS "  Output Directory: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 message(STATUS "")
 
+# Build stack trace example with different configurations
+# Check if the source file exists in examples directory
+if(EXISTS ${CMAKE_SOURCE_DIR}/examples/${STACK_TRACE_EXAMPLE}.cpp)
+    # Frame pointer version (recommended)
+    add_executable(${STACK_TRACE_EXAMPLE}_fp ${CMAKE_SOURCE_DIR}/examples/${STACK_TRACE_EXAMPLE}.cpp)
+    target_compile_options(${STACK_TRACE_EXAMPLE}_fp PRIVATE -fno-omit-frame-pointer -g)
+    target_link_libraries(${STACK_TRACE_EXAMPLE}_fp PRIVATE Threads::Threads)
+    
+    # DWARF version (detailed debug info)
+    add_executable(${STACK_TRACE_EXAMPLE}_dwarf ${CMAKE_SOURCE_DIR}/examples/${STACK_TRACE_EXAMPLE}.cpp)
+    target_compile_options(${STACK_TRACE_EXAMPLE}_dwarf PRIVATE -g3 -gdwarf-4 -funwind-tables)
+    target_link_libraries(${STACK_TRACE_EXAMPLE}_dwarf PRIVATE Threads::Threads)
+    
+    # No frame pointer version (for comparison)
+    add_executable(${STACK_TRACE_EXAMPLE}_no_fp ${CMAKE_SOURCE_DIR}/examples/${STACK_TRACE_EXAMPLE}.cpp)
+    target_compile_options(${STACK_TRACE_EXAMPLE}_no_fp PRIVATE -fomit-frame-pointer)
+    target_link_libraries(${STACK_TRACE_EXAMPLE}_no_fp PRIVATE Threads::Threads)
+    
+    # Add to list of installable targets
+    set(STACK_TRACE_TARGETS ${STACK_TRACE_EXAMPLE}_fp ${STACK_TRACE_EXAMPLE}_dwarf ${STACK_TRACE_EXAMPLE}_no_fp)
+else()
+    message(STATUS "Stack trace example not found in examples directory")
+    set(STACK_TRACE_TARGETS "")
+endif()
+
 # Installation rules (optional)
-install(TARGETS ${EXAMPLES}
+install(TARGETS ${EXAMPLES} ${STACK_TRACE_TARGETS}
     RUNTIME DESTINATION bin
 )
 

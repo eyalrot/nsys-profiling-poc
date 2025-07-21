@@ -45,6 +45,7 @@ make advanced-workflow
 |--------|-------------|---------|
 | `all` / `cpp-all` | Build all C++ examples | `make all` |
 | `nvtx` | Build with NVTX support (requires CUDA) | `make nvtx` |
+| `build-stack-trace` | Build stack trace examples with different flags | `make build-stack-trace` |
 | Individual targets | Build specific example | `make cpp/bin/1_basic_cpu_profiling` |
 
 ### Run Targets (No Profiling)
@@ -71,6 +72,7 @@ make advanced-workflow
 | `profile-memory` | Memory pattern analysis | Memory access, cache behavior |
 | `profile-advanced` | All available metrics | GPU metrics, CUDA, cuDNN, cuBLAS |
 | `profile-custom` | Custom profiling | User-defined options |
+| `profile-stack-traces` | Profile with different backtrace methods | fp, dwarf, lbr backtraces |
 
 #### Custom Profiling Example
 ```bash
@@ -91,6 +93,7 @@ make profile-custom TARGET=cpp/bin/2_matrix_operations \
 | `analyze-nvtx` | NVTX marker summary | `*_nvtx.txt` |
 | `analyze-compare` | Python vs C++ comparison | Comparison reports |
 | `analyze-visual` | Visual HTML report | `profiling_report.html` with charts |
+| `analyze-stack-traces` | Stack trace analysis | `stack_trace_*_analysis.txt` |
 
 ### Viewing Targets
 
@@ -109,6 +112,8 @@ make profile-custom TARGET=cpp/bin/2_matrix_operations \
 | `clean-results` | Remove profiling results only | `make clean-results` |
 | `archive` | Create timestamped archive | `make archive` |
 | `check-nsys` | Verify nsys installation | `make check-nsys` |
+| `test-stack-traces` | Test stack trace collection setup | `make test-stack-traces` |
+| `view-stack-trace-docs` | View stack trace documentation | `make view-stack-trace-docs` |
 
 ## Advanced Workflows Menu
 
@@ -157,6 +162,21 @@ make profile
 
 # Generate comparison
 make analyze-compare analyze-visual
+```
+
+### Stack Trace Analysis
+```bash
+# Test your stack trace setup
+make test-stack-traces
+
+# Build and profile with different backtrace methods
+make profile-stack-traces
+
+# Analyze stack trace results
+make analyze-stack-traces
+
+# View stack trace documentation
+make view-stack-trace-docs
 
 # Open visual report
 xdg-open results/reports/profiling_report.html
